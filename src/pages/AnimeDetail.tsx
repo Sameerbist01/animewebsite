@@ -109,9 +109,11 @@ const AnimeDetail = () => {
                 className="w-full rounded-lg shadow-2xl anime-card"
               />
               <div className="mt-6 space-y-3">
-                <Button size="lg" className="w-full glow-primary">
-                  <Play className="w-5 h-5 mr-2" />
-                  Watch Now
+                <Button size="lg" className="w-full glow-primary" asChild>
+                  <Link to={`/anime/${animeId}/episode/1`}>
+                    <Play className="w-5 h-5 mr-2" />
+                    Watch Episode 1
+                  </Link>
                 </Button>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" className="flex-1">
@@ -123,6 +125,33 @@ const AnimeDetail = () => {
                     Share
                   </Button>
                 </div>
+                
+                {/* Episode Quick Links */}
+                {anime.episodes && anime.episodes > 1 && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium mb-2 text-muted-foreground">Quick Episodes</h4>
+                    <div className="grid grid-cols-3 gap-2">
+                      {Array.from({ length: Math.min(anime.episodes, 9) }, (_, i) => (
+                        <Button
+                          key={i + 1}
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                          asChild
+                        >
+                          <Link to={`/anime/${animeId}/episode/${i + 1}`}>
+                            Ep {i + 1}
+                          </Link>
+                        </Button>
+                      ))}
+                    </div>
+                    {anime.episodes > 9 && (
+                      <Button variant="ghost" size="sm" className="w-full mt-2 text-xs text-muted-foreground">
+                        View All {anime.episodes} Episodes
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -1,31 +1,16 @@
 import { Link } from "react-router-dom";
 import { Badge } from "./ui/badge";
 import { Card, CardContent } from "./ui/card";
-import { Star, Calendar, Tv } from "lucide-react";
+import { Star, Calendar, Tv, Play } from "lucide-react";
+import { AnimeData } from "@/lib/api";
 
 interface AnimeCardProps {
-  anime: {
-    mal_id: number;
-    title: string;
-    title_english?: string;
-    images: {
-      jpg: {
-        image_url: string;
-        large_image_url: string;
-      };
-    };
-    score?: number;
-    episodes?: number;
-    status?: string;
-    type?: string;
-    year?: number;
-    genres?: Array<{ name: string }>;
-    rating?: string;
-  };
+  anime: AnimeData;
   loading?: boolean;
+  compact?: boolean;
 }
 
-const AnimeCard = ({ anime, loading = false }: AnimeCardProps) => {
+const AnimeCard = ({ anime, loading = false, compact = false }: AnimeCardProps) => {
   if (loading) {
     return (
       <Card className="anime-card overflow-hidden">
@@ -44,6 +29,51 @@ const AnimeCard = ({ anime, loading = false }: AnimeCardProps) => {
 
   const displayTitle = anime.title_english || anime.title;
   const imageUrl = anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url;
+
+  if (compact) {
+    return (
+      <Link to={`/anime/${anime.mal_id}`} className="block">
+        <Card className="anime-card overflow-hidden group cursor-pointer">
+          <div className="relative aspect-[3/4] overflow-hidden">
+            <img
+              src={imageUrl}
+              alt={displayTitle}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+              loading="lazy"
+            />
+            
+            {/* Play Button Overlay */}
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/40">
+              <div className="bg-primary/90 rounded-full p-2 transform scale-75 group-hover:scale-100 transition-transform duration-300">
+                <Play className="w-4 h-4 text-primary-foreground" />
+              </div>
+            </div>
+
+            {/* Status badges */}
+            <div className="absolute top-1 left-1">
+              {anime.type && (
+                <Badge variant="secondary" className="text-xs bg-black/60 text-white border-0">
+                  {anime.type}
+                </Badge>
+              )}
+            </div>
+          </div>
+
+          <CardContent className="p-2">
+            <h4 className="font-medium text-xs mb-1 line-clamp-2 group-hover:text-primary transition-colors">
+              {displayTitle}
+            </h4>
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>{anime.year || "Unknown"}</span>
+              {anime.score && (
+                <span className="text-accent">⭐ {anime.score}</span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
+    );
+  }
 
   return (
     <Link to={`/anime/${anime.mal_id}`} className="block">
@@ -112,27 +142,27 @@ const AnimeCard = ({ anime, loading = false }: AnimeCardProps) => {
             )}
           </div>
 
-          {anime.genres && anime.genres.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {anime.genres.slice(0, 2).map((genre) => (
-                <Badge
-                  key={genre.name}
-                  variant="outline"
-                  className="text-xs px-2 py-0 border-border/50 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
-                >
-                  {genre.name}
-                </Badge>
-              ))}
-              {anime.genres.length > 2 && (
-                <Badge
-                  variant="outline"
-                  className="text-xs px-2 py-0 border-border/50 text-muted-foreground"
-                >
-                  +{anime.genres.length - 2}
-                </Badge>
-              )}
-            </div>
-          )}
+            {anime.genres && anime.genres.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {anime.genres.slice(0, 2).map((genre) => (
+                  <Badge
+                    key={genre.mal_id}
+                    variant="outline"
+                    className="text-xs px-2 py-0 border-border/50 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
+                  >
+                    {genre.name}
+                  </Badge>
+                ))}
+                {anime.genres.length > 2 && (
+                  <Badge
+                    variant="outline"
+                    className="text-xs px-2 py-0 border-border/50 text-muted-foreground"
+                  >
+                    +{anime.genres.length - 2}
+                  </Badge>
+                )}
+              </div>
+            )}
         </CardContent>
       </Card>
     </Link>
