@@ -1,26 +1,51 @@
-const BASE_URL = "https://api.jikan.moe/v4";
+const BASE_URL = "https://aniwatch-v2-18-0.onrender.com";
 
 export interface AnimeData {
-  mal_id: number;
-  title: string;
+  id: string;
+  name: string;
+  jname?: string;
+  poster: string;
+  description?: string;
+  stats?: {
+    rating: string;
+    quality: string;
+    episodes: {
+      sub: number;
+      dub: number;
+    };
+    type: string;
+    duration: string;
+  };
+  episodes?: {
+    sub: number;
+    dub: number;
+  };
+  type?: string;
+  rating?: string;
+  duration?: string;
+  moreInfo?: {
+    aired: string;
+    genres: string[];
+    status: string;
+    studios: string;
+    duration: string;
+  };
+  // Legacy fields for compatibility
+  mal_id?: number;
+  title?: string;
   title_english?: string;
   title_japanese?: string;
   synopsis?: string;
-  images: {
+  images?: {
     jpg: {
       image_url: string;
       large_image_url: string;
     };
   };
   score?: number;
-  episodes?: number;
-  status?: string;
-  type?: string;
   year?: number;
-  genres?: Array<{ mal_id: number; name: string }>;
+  genres?: Array<{ mal_id: number; name: string }> | string[];
   studios?: Array<{ name: string }>;
-  rating?: string;
-  duration?: string;
   aired?: {
     from?: string;
     to?: string;
@@ -28,19 +53,46 @@ export interface AnimeData {
   producers?: Array<{ name: string }>;
   demographics?: Array<{ name: string }>;
   themes?: Array<{ name: string }>;
+  status?: string;
 }
 
-export interface JikanResponse<T> {
+export interface EpisodeData {
+  number: number;
+  title: string;
+  episodeId: string;
+  isFiller: boolean;
+}
+
+export interface ServerData {
+  serverId: number;
+  serverName: string;
+}
+
+export interface StreamingData {
+  headers: Record<string, string>;
+  sources: Array<{
+    url: string;
+    isM3U8: boolean;
+    quality?: string;
+  }>;
+  subtitles: Array<{
+    lang: string;
+    url: string;
+  }>;
+  anilistID?: number | null;
+  malID?: number | null;
+}
+
+export interface AniwatchResponse<T> {
+  success: boolean;
   data: T;
-  pagination?: {
-    last_visible_page: number;
-    has_next_page: boolean;
-    current_page: number;
-    items: {
-      count: number;
-      total: number;
-      per_page: number;
-    };
+}
+
+export interface PaginatedResponse<T> extends AniwatchResponse<T> {
+  data: T & {
+    currentPage: number;
+    totalPages: number;
+    hasNextPage: boolean;
   };
 }
 
@@ -77,102 +129,198 @@ async function cachedFetch<T>(url: string): Promise<T> {
 }
 
 export const animeApi = {
-  // Get top anime
-  getTopAnime: async (type?: string, page = 1): Promise<JikanResponse<AnimeData[]>> => {
-    const params = new URLSearchParams({
-      page: page.toString(),
-    });
-    
-    if (type) {
-      params.append('type', type);
-    }
-    
-    return cachedFetch(`${BASE_URL}/top/anime?${params}`);
+  // Get home page data
+  getHomeData: async (): Promise<AniwatchResponse<{
+    genres: string[];
+    latestEpisodeAnimes: AnimeData[];
+    spotlightAnimes: AnimeData[];
+    top10Animes: {
+      today: AnimeData[];
+      week: AnimeData[];
+      month: AnimeData[];
+    };
+    topAiringAnimes: AnimeData[];
+    topUpcomingAnimes: AnimeData[];
+    trendingAnimes: AnimeData[];
+    mostPopularAnimes: AnimeData[];
+    mostFavoriteAnimes: AnimeData[];
+    latestCompletedAnimes: AnimeData[];
+  }>> => {
+    return cachedFetch(`${BASE_URL}/api/v2/hianime/home`);
   },
 
-  // Get seasonal anime (currently airing)
-  getSeasonalAnime: async (page = 1): Promise<JikanResponse<AnimeData[]>> => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
-    
-    let season: string;
-    if (month >= 1 && month <= 3) season = 'winter';
-    else if (month >= 4 && month <= 6) season = 'spring';
-    else if (month >= 7 && month <= 9) season = 'summer';
-    else season = 'fall';
+  // Get top anime (using most popular)
+  getTopAnime: async (type?: string, page = 1): Promise<{ data: AnimeData[]; pagination?: any }> => {
+    const homeData = await animeApi.getHomeData();
+    return {
+      data: homeData.data.mostPopularAnimes.slice(0, 25),
+      pagination: {
+        last_visible_page: 1,
+        has_next_page: false,
+        current_page: page,
+        items: { count: 25, total: 25, per_page: 25 }
+      }
+    };
+  },
 
-    return cachedFetch(`${BASE_URL}/seasons/${year}/${season}?page=${page}`);
+  // Get seasonal anime (using top airing)
+  getSeasonalAnime: async (page = 1): Promise<{ data: AnimeData[]; pagination?: any }> => {
+    const homeData = await animeApi.getHomeData();
+    return {
+      data: homeData.data.topAiringAnimes.slice(0, 25),
+      pagination: {
+        last_visible_page: 1,
+        has_next_page: false,
+        current_page: page,
+        items: { count: 25, total: 25, per_page: 25 }
+      }
+    };
   },
 
   // Search anime
-  searchAnime: async (query: string, page = 1, type?: string): Promise<JikanResponse<AnimeData[]>> => {
+  searchAnime: async (query: string, page = 1, type?: string): Promise<PaginatedResponse<{
+    animes: AnimeData[];
+    mostPopularAnimes: AnimeData[];
+    searchQuery: string;
+    searchFilters: Record<string, any>;
+  }>> => {
     const params = new URLSearchParams({
       q: query,
       page: page.toString(),
-      limit: '24',
     });
     
     if (type) {
       params.append('type', type);
     }
     
-    return cachedFetch(`${BASE_URL}/anime?${params}`);
+    return cachedFetch(`${BASE_URL}/api/v2/hianime/search?${params}`);
   },
 
   // Get anime by ID
-  getAnimeById: async (id: number): Promise<{ data: AnimeData }> => {
-    return cachedFetch(`${BASE_URL}/anime/${id}`);
+  getAnimeById: async (id: string): Promise<AniwatchResponse<{
+    anime: {
+      info: {
+        id: string;
+        name: string;
+        poster: string;
+        description: string;
+        stats: {
+          rating: string;
+          quality: string;
+          episodes: { sub: number; dub: number };
+          type: string;
+          duration: string;
+        };
+      };
+      moreInfo: {
+        aired: string;
+        genres: string[];
+        status: string;
+        studios: string;
+        duration: string;
+      };
+    };
+    mostPopularAnimes: AnimeData[];
+    recommendedAnimes: AnimeData[];
+    relatedAnimes: AnimeData[];
+    seasons: Array<{
+      id: string;
+      name: string;
+      title: string;
+      poster: string;
+      isCurrent: boolean;
+    }>;
+  }>> => {
+    return cachedFetch(`${BASE_URL}/api/v2/hianime/anime/${id}`);
   },
 
-  // Get anime characters
-  getAnimeCharacters: async (id: number): Promise<JikanResponse<any[]>> => {
-    return cachedFetch(`${BASE_URL}/anime/${id}/characters`);
+  // Get anime episodes
+  getAnimeEpisodes: async (id: string): Promise<AniwatchResponse<{
+    totalEpisodes: number;
+    episodes: EpisodeData[];
+  }>> => {
+    return cachedFetch(`${BASE_URL}/api/v2/hianime/anime/${id}/episodes`);
+  },
+
+  // Get episode servers
+  getEpisodeServers: async (episodeId: string): Promise<AniwatchResponse<{
+    episodeId: string;
+    episodeNo: number;
+    sub: ServerData[];
+    dub: ServerData[];
+    raw: ServerData[];
+  }>> => {
+    return cachedFetch(`${BASE_URL}/api/v2/hianime/episode/servers?animeEpisodeId=${episodeId}`);
+  },
+
+  // Get episode streaming links
+  getEpisodeStreams: async (episodeId: string, server = "hd-1", category: "sub" | "dub" | "raw" = "sub"): Promise<AniwatchResponse<StreamingData>> => {
+    return cachedFetch(`${BASE_URL}/api/v2/hianime/episode/sources?animeEpisodeId=${episodeId}&server=${server}&category=${category}`);
+  },
+
+  // Get anime characters (mock for compatibility)
+  getAnimeCharacters: async (id: string): Promise<{ data: any[] }> => {
+    return { data: [] };
   },
 
   // Get anime recommendations
-  getAnimeRecommendations: async (id: number): Promise<JikanResponse<any[]>> => {
-    return cachedFetch(`${BASE_URL}/anime/${id}/recommendations`);
+  getAnimeRecommendations: async (id: string): Promise<{ data: AnimeData[] }> => {
+    try {
+      const animeData = await animeApi.getAnimeById(id);
+      return { data: animeData.data.recommendedAnimes || [] };
+    } catch {
+      return { data: [] };
+    }
   },
 
-  // Get popular anime (most favorited)
-  getPopularAnime: async (page = 1): Promise<JikanResponse<AnimeData[]>> => {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      order_by: 'favorites',
-      sort: 'desc',
-    });
-    
-    return cachedFetch(`${BASE_URL}/anime?${params}`);
+  // Get popular anime
+  getPopularAnime: async (page = 1): Promise<{ data: AnimeData[]; pagination?: any }> => {
+    const homeData = await animeApi.getHomeData();
+    return {
+      data: homeData.data.mostPopularAnimes.slice(0, 25),
+      pagination: {
+        last_visible_page: 1,
+        has_next_page: false,
+        current_page: page,
+        items: { count: 25, total: 25, per_page: 25 }
+      }
+    };
   },
 
   // Get movies
-  getMovies: async (page = 1): Promise<JikanResponse<AnimeData[]>> => {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      type: 'movie',
-      order_by: 'score',
-      sort: 'desc',
-    });
-    
-    return cachedFetch(`${BASE_URL}/anime?${params}`);
+  getMovies: async (page = 1): Promise<{ data: AnimeData[]; pagination?: any }> => {
+    const searchData = await animeApi.searchAnime("", page, "movie");
+    return {
+      data: searchData.data.animes || [],
+      pagination: {
+        last_visible_page: searchData.data.totalPages,
+        has_next_page: searchData.data.hasNextPage,
+        current_page: searchData.data.currentPage,
+        items: { count: 25, total: 25, per_page: 25 }
+      }
+    };
   },
 
   // Get TV series
-  getTVSeries: async (page = 1): Promise<JikanResponse<AnimeData[]>> => {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      type: 'tv',
-      order_by: 'score',
-      sort: 'desc',
-    });
-    
-    return cachedFetch(`${BASE_URL}/anime?${params}`);
+  getTVSeries: async (page = 1): Promise<{ data: AnimeData[]; pagination?: any }> => {
+    const searchData = await animeApi.searchAnime("", page, "tv");
+    return {
+      data: searchData.data.animes || [],
+      pagination: {
+        last_visible_page: searchData.data.totalPages,
+        has_next_page: searchData.data.hasNextPage,
+        current_page: searchData.data.currentPage,
+        items: { count: 25, total: 25, per_page: 25 }
+      }
+    };
   },
 
   // Get random anime for hero section
   getRandomAnime: async (): Promise<{ data: AnimeData }> => {
-    return cachedFetch(`${BASE_URL}/random/anime`);
+    const homeData = await animeApi.getHomeData();
+    const spotlightAnimes = homeData.data.spotlightAnimes;
+    const randomIndex = Math.floor(Math.random() * spotlightAnimes.length);
+    return { data: spotlightAnimes[randomIndex] };
   },
 };
 

@@ -36,7 +36,7 @@ const SearchPage = () => {
   };
 
   const loadMore = () => {
-    if (searchResults?.pagination?.has_next_page) {
+    if (searchResults?.data?.hasNextPage) {
       setCurrentPage(prev => prev + 1);
     }
   };
@@ -101,7 +101,7 @@ const SearchPage = () => {
             </h1>
             {searchResults && (
               <p className="text-muted-foreground">
-                Found {searchResults.pagination?.items?.total || 0} results
+                Found results for your search
                 {selectedType && ` in ${selectedType.toUpperCase()} category`}
               </p>
             )}
@@ -130,7 +130,7 @@ const SearchPage = () => {
         )}
 
         {/* No Results */}
-        {searchResults && searchResults.data.length === 0 && !isLoading && (
+        {searchResults && searchResults.data.animes && searchResults.data.animes.length === 0 && !isLoading && (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">🔍</div>
             <h2 className="text-2xl font-bold mb-2">No Results Found</h2>
@@ -157,7 +157,7 @@ const SearchPage = () => {
             </div>
 
             {/* Load More Button */}
-            {searchResults.pagination?.has_next_page && (
+            {searchResults.data.hasNextPage && (
               <div className="text-center">
                 <Button 
                   onClick={loadMore}
@@ -172,7 +172,7 @@ const SearchPage = () => {
 
             {/* Pagination Info */}
             <div className="text-center mt-6 text-muted-foreground">
-              Page {searchResults.pagination?.current_page} of {searchResults.pagination?.last_visible_page}
+              Page {searchResults.data.currentPage} of {searchResults.data.totalPages}
             </div>
           </>
         )}

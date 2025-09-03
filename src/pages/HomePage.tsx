@@ -46,10 +46,15 @@ const HomePage = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <HeroSection 
-        featuredAnime={featuredAnime || undefined} 
-        loading={!featuredAnime}
-      />
+        <HeroSection 
+          featuredAnime={featuredAnime ? { 
+            ...featuredAnime, 
+            mal_id: parseInt(featuredAnime.id || "0"),
+            title: featuredAnime.name,
+            images: { jpg: { image_url: featuredAnime.poster, large_image_url: featuredAnime.poster } }
+          } : undefined} 
+          loading={!featuredAnime}
+        />
 
       <div className="container mx-auto px-4 py-12 space-y-16">
         {/* Top Airing Section */}

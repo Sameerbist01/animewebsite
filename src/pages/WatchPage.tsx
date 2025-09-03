@@ -82,14 +82,14 @@ const WatchPage = () => {
       try {
         setLoading(true);
         const [animeResponse, recommendationsResponse] = await Promise.all([
-          animeApi.getAnimeById(parseInt(animeId)),
-          animeApi.getAnimeRecommendations(parseInt(animeId))
+          animeApi.getAnimeById(animeId),
+          animeApi.getAnimeRecommendations(animeId)
         ]);
         
-        setAnime(animeResponse.data);
+        setAnime(animeResponse.data.anime.info);
         
         // Mock episodes data based on anime episodes count
-        const episodeCount = animeResponse.data.episodes || 12;
+        const episodeCount = animeResponse.data.anime.info.stats.episodes.sub || 12;
         const mockEpisodes: Episode[] = Array.from({ length: episodeCount }, (_, i) => ({
           id: `${animeId}-ep-${i + 1}`,
           title: `Episode ${i + 1}`,
@@ -163,7 +163,7 @@ const WatchPage = () => {
 
   const handleNextEpisode = () => {
     const currentEp = parseInt(episodeNumber || "1");
-    const maxEp = anime?.episodes || episodes.length;
+    const maxEp = typeof anime?.stats?.episodes?.sub === 'number' ? anime.stats.episodes.sub : episodes.length;
     if (currentEp < maxEp) {
       navigate(`/anime/${animeId}/episode/${currentEp + 1}`);
     }
@@ -368,7 +368,7 @@ const WatchPage = () => {
               <Button
                 variant="outline"
                 onClick={handleNextEpisode}
-                disabled={parseInt(episodeNumber || "1") >= (anime.episodes || episodes.length)}
+                disabled={parseInt(episodeNumber || "1") >= (typeof anime?.stats?.episodes?.sub === 'number' ? anime.stats.episodes.sub : episodes.length)}
               >
                 Next Episode
                 <SkipForward className="w-4 h-4 ml-2" />

@@ -11,7 +11,7 @@ import AnimeCard from "@/components/AnimeCard";
 
 const AnimeDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const animeId = parseInt(id || "0");
+  const animeId = id || "";
 
   const { data: animeData, isLoading, error } = useQuery({
     queryKey: ['anime', animeId],
@@ -72,8 +72,9 @@ const AnimeDetail = () => {
     );
   }
 
-  const anime = animeData.data;
-  const displayTitle = anime.title_english || anime.title;
+  const anime = animeData.data.anime.info;
+  const moreInfo = animeData.data.anime.moreInfo;
+  const displayTitle = anime.name;
 
   return (
     <div className="min-h-screen bg-background">
@@ -81,7 +82,7 @@ const AnimeDetail = () => {
       <div 
         className="relative h-[50vh] bg-cover bg-center"
         style={{
-          backgroundImage: `url(${anime.images.jpg.large_image_url})`,
+          backgroundImage: `url(${anime.poster})`,
         }}
       >
         <div className="absolute inset-0 bg-black/70"></div>
@@ -104,7 +105,7 @@ const AnimeDetail = () => {
           <div className="lg:col-span-1">
             <div className="sticky top-8">
               <img
-                src={anime.images.jpg.large_image_url}
+                src={anime.poster}
                 alt={displayTitle}
                 className="w-full rounded-lg shadow-2xl anime-card"
               />
@@ -127,11 +128,11 @@ const AnimeDetail = () => {
                 </div>
                 
                 {/* Episode Quick Links */}
-                {anime.episodes && anime.episodes > 1 && (
+                {anime.stats.episodes.sub && anime.stats.episodes.sub > 1 && (
                   <div className="mt-4">
                     <h4 className="text-sm font-medium mb-2 text-muted-foreground">Quick Episodes</h4>
                     <div className="grid grid-cols-3 gap-2">
-                      {Array.from({ length: Math.min(anime.episodes, 9) }, (_, i) => (
+                      {Array.from({ length: Math.min(anime.stats.episodes.sub, 9) }, (_, i) => (
                         <Button
                           key={i + 1}
                           variant="outline"
@@ -145,9 +146,9 @@ const AnimeDetail = () => {
                         </Button>
                       ))}
                     </div>
-                    {anime.episodes > 9 && (
+                    {anime.stats.episodes.sub > 9 && (
                       <Button variant="ghost" size="sm" className="w-full mt-2 text-xs text-muted-foreground">
-                        View All {anime.episodes} Episodes
+                        View All {anime.stats.episodes.sub} Episodes
                       </Button>
                     )}
                   </div>
@@ -163,14 +164,12 @@ const AnimeDetail = () => {
               <h1 className="text-3xl md:text-5xl font-bold mb-4 text-white">
                 {displayTitle}
               </h1>
-              {anime.title_japanese && anime.title_japanese !== anime.title && (
-                <p className="text-lg text-muted-foreground mb-4">{anime.title_japanese}</p>
-              )}
+              {/* Remove Japanese name since it's not in the API response */}
               
-              {anime.score && (
+              {anime.stats.rating && (
                 <div className="flex items-center mb-4">
                   <Star className="w-6 h-6 fill-yellow-400 text-yellow-400 mr-2" />
-                  <span className="text-2xl font-bold text-white">{anime.score}</span>
+                  <span className="text-2xl font-bold text-white">{anime.stats.rating}</span>
                   <span className="text-muted-foreground ml-2">/10</span>
                 </div>
               )}
@@ -178,60 +177,60 @@ const AnimeDetail = () => {
 
             {/* Meta Information */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {anime.year && (
+              {moreInfo.aired && (
                 <div className="flex items-center text-muted-foreground">
                   <Calendar className="w-4 h-4 mr-2" />
-                  <span>{anime.year}</span>
+                  <span>{moreInfo.aired}</span>
                 </div>
               )}
-              {anime.episodes && (
+              {anime.stats.episodes.sub && (
                 <div className="flex items-center text-muted-foreground">
                   <Tv className="w-4 h-4 mr-2" />
-                  <span>{anime.episodes} eps</span>
+                  <span>{anime.stats.episodes.sub} eps</span>
                 </div>
               )}
-              {anime.duration && (
+              {anime.stats.duration && (
                 <div className="flex items-center text-muted-foreground">
                   <Clock className="w-4 h-4 mr-2" />
-                  <span>{anime.duration}</span>
+                  <span>{anime.stats.duration}</span>
                 </div>
               )}
-              {anime.type && (
+              {anime.stats.type && (
                 <div className="flex items-center text-muted-foreground">
                   <span className="w-2 h-2 bg-primary rounded-full mr-2"></span>
-                  <span>{anime.type}</span>
+                  <span>{anime.stats.type}</span>
                 </div>
               )}
             </div>
 
             {/* Status and Rating */}
             <div className="flex flex-wrap gap-2">
-              {anime.status && (
+              {moreInfo.status && (
                 <Badge 
-                  className={anime.status === "Currently Airing" ? "badge-sub" : "badge-rating"}
+                  className={moreInfo.status === "Currently Airing" ? "badge-sub" : "badge-rating"}
                 >
-                  {anime.status}
+                  {moreInfo.status}
                 </Badge>
               )}
-              {anime.rating && (
+              {anime.stats.rating && (
                 <Badge variant="outline" className="border-border/50">
-                  {anime.rating}
+                  {anime.stats.rating}
                 </Badge>
               )}
             </div>
 
             {/* Genres */}
-            {anime.genres && anime.genres.length > 0 && (
+            {moreInfo.genres && moreInfo.genres.length > 0 && (
               <div>
                 <h3 className="text-lg font-semibold mb-3 text-white">Genres</h3>
                 <div className="flex flex-wrap gap-2">
-                  {anime.genres.map((genre) => (
+                  {moreInfo.genres.map((genre, index) => (
                     <Badge
-                      key={genre.mal_id}
+                      key={index}
                       variant="outline"
                       className="border-primary/30 text-primary hover:bg-primary/10 transition-colors"
                     >
-                      {genre.name}
+                      {genre}
                     </Badge>
                   ))}
                 </div>
@@ -239,45 +238,27 @@ const AnimeDetail = () => {
             )}
 
             {/* Synopsis */}
-            {anime.synopsis && (
+            {anime.description && (
               <div>
                 <h3 className="text-lg font-semibold mb-3 text-white">Synopsis</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  {anime.synopsis}
+                  {anime.description}
                 </p>
               </div>
             )}
 
             {/* Additional Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {anime.studios && anime.studios.length > 0 && (
+              {moreInfo.studios && (
                 <div>
                   <h3 className="text-lg font-semibold mb-3 text-white flex items-center">
                     <Building className="w-5 h-5 mr-2" />
                     Studios
                   </h3>
                   <div className="space-y-1">
-                    {anime.studios.map((studio, index) => (
-                      <p key={index} className="text-muted-foreground">
-                        {studio.name}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {anime.producers && anime.producers.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 text-white flex items-center">
-                    <Users className="w-5 h-5 mr-2" />
-                    Producers
-                  </h3>
-                  <div className="space-y-1">
-                    {anime.producers.slice(0, 3).map((producer, index) => (
-                      <p key={index} className="text-muted-foreground">
-                        {producer.name}
-                      </p>
-                    ))}
+                    <p className="text-muted-foreground">
+                      {moreInfo.studios}
+                    </p>
                   </div>
                 </div>
               )}
@@ -291,7 +272,7 @@ const AnimeDetail = () => {
             <h2 className="text-2xl font-bold mb-8">You Might Also Like</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
               {recommendationsData.data.slice(0, 12).map((rec: any) => (
-                <AnimeCard key={rec.entry.mal_id} anime={rec.entry} />
+                <AnimeCard key={rec.id} anime={rec} />
               ))}
             </div>
           </section>
