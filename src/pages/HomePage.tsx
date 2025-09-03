@@ -48,10 +48,16 @@ const HomePage = () => {
       {/* Hero Section */}
         <HeroSection 
           featuredAnime={featuredAnime ? { 
-            ...featuredAnime, 
             mal_id: parseInt(featuredAnime.id || "0"),
             title: featuredAnime.name,
-            images: { jpg: { image_url: featuredAnime.poster, large_image_url: featuredAnime.poster } }
+            synopsis: featuredAnime.description,
+            episodes: featuredAnime.stats?.episodes?.sub || 0,
+            type: featuredAnime.type || featuredAnime.stats?.type,
+            images: { jpg: { large_image_url: featuredAnime.poster } },
+            genres: featuredAnime.moreInfo?.genres?.map(genre => ({ name: genre })) || 
+                   (Array.isArray(featuredAnime.genres) && typeof featuredAnime.genres[0] === 'object' 
+                    ? featuredAnime.genres.map(g => ({ name: g.name }))
+                    : [])
           } : undefined} 
           loading={!featuredAnime}
         />
